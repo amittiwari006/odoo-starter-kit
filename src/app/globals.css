@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --odoo-purple: #714B67;
+  --odoo-purple-dark: #5c3d55;
+  --odoo-purple-light: #f3eef1;
+  --background: #f8f9fa;
+  --foreground: #1e1e2e;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
 
 body {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Odoo-style scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #714B67; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #5c3d55; }
+
+/* Smooth transitions */
+* { transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+
+/* Odoo-style card */
+.odoo-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* Odoo-style button */
+.btn-primary {
+  background: #714B67;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary:hover { background: #5c3d55; }
+.btn-primary:disabled { background: #c4b0bf; cursor: not-allowed; }
+
+.btn-secondary {
+  background: white;
+  color: #714B67;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid #714B67;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-secondary:hover { background: #f3eef1; }
+
+/* Input styles */
+.input-field {
+  width: 100%;
+  padding: 9px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  background: white;
+  outline: none;
+}
+.input-field:focus { border-color: #714B67; box-shadow: 0 0 0 3px rgba(113,75,103,0.1); }
+.input-field::placeholder { color: #9ca3af; }
+
+/* Table styles */
+.odoo-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.odoo-table th {
+  background: #f9fafb;
+  padding: 11px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.odoo-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  vertical-align: middle;
+}
+.odoo-table tr:hover td { background: #faf9fb; }
+.odoo-table tr:last-child td { border-bottom: none; }
+
+/* Sidebar */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #e2d9e0;
+  text-decoration: none;
+  font-weight: 400;
+}
+.sidebar-link:hover, .sidebar-link.active {
+  background: rgba(255,255,255,0.12);
+  color: white;
+}
+
+/* Badge animation */
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
