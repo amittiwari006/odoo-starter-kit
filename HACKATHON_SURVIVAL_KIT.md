@@ -4,7 +4,7 @@
 * **Your GitHub Repo:** [https://github.com/amittiwari006/odoo-starter-kit](https://github.com/amittiwari006/odoo-starter-kit)
 * **Local Project Folder (VS Code):** `C:\Users\salon\.gemini\antigravity\scratch\odoo-starter-kit`
 * **File Explorer Documents Copy:** `C:\Users\salon\Documents\odoo-starter-kit`
-* **Supabase Cloud Database:** [https://supabase.com/dashboard/project/yxqjubfcpfotqponcajn](https://supabase.com/dashboard/project/yxqjubfcpfotqponcajn)
+* **Supabase Cloud Database:** [https://supabase.com/dashboard/project/yxtjubfcpfotqponcajn](https://supabase.com/dashboard/project/yxtjubfcpfotqponcajn)
 * **Local Dev Server:** `http://localhost:3000` (run `npm run dev`)
 
 ---
