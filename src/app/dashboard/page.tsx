@@ -1,325 +1,351 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { STATUS_COLORS, CATEGORIES, formatDate, formatTime } from '@/lib/utils';
+
+import React, { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
+import InvoicePrintModal from '@/components/InvoicePrintModal';
+import RegisterPaymentModal from '@/components/RegisterPaymentModal';
+import { store } from '@/lib/store';
+import { Subscription, Invoice, UserProfile } from '@/lib/types';
 import {
-  PlusCircle, ClipboardList, LogOut, Clock, CheckCircle2,
-  XCircle, AlertCircle, Search, Filter, ChevronDown, X
+  Layers,
+  FileText,
+  CreditCard,
+  Calendar,
+  Clock,
+  CheckCircle,
+  Pause,
+  Play,
+  RotateCw,
+  Printer,
+  DollarSign,
+  Shield,
+  AlertCircle
 } from 'lucide-react';
 
-type Request = {
-  id: number; title: string; description: string; category: string;
-  status: string; priority: string; created_at: string; updated_at: string;
-  user_name: string; user_email: string;
-};
+export default function CustomerPortalPage() {
+  const [currentUser, setCurrentUser] = useState<UserProfile>(store.getCurrentUser());
+  const [customerEmail, setCustomerEmail] = useState<string>('marcus@acmecorp.com');
+  const [todayStr, setTodayStr] = useState<string>('2026-10-31');
 
-const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(
+    store.getCustomerSubscriptions(customerEmail)
+  );
+  const [invoices, setInvoices] = useState<Invoice[]>(
+    store.getCustomerInvoices(customerEmail)
+  );
 
-export default function UserDashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [filtered, setFiltered] = useState<Request[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [form, setForm] = useState({ title: '', description: '', category: 'General', priority: 'Medium' });
-  const [formErr, setFormErr] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedInvoiceForPrint, setSelectedInvoiceForPrint] = useState<Invoice | null>(null);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const refreshPortalData = () => {
+    const user = store.getCurrentUser();
+    setCurrentUser(user);
+    const email = user.role === 'customer' ? user.email : 'marcus@acmecorp.com';
+    setCustomerEmail(email);
+    setSubscriptions(store.getCustomerSubscriptions(email));
+    setInvoices(store.getCustomerInvoices(email));
+  };
 
   useEffect(() => {
-    checkUser();
+    setTodayStr(new Date().toISOString().split('T')[0]);
+    refreshPortalData();
+    const unsub = store.subscribe(() => {
+      refreshPortalData();
+    });
+    return unsub;
   }, []);
 
-  useEffect(() => {
-    let result = [...requests];
-    if (search) result = result.filter(r =>
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      r.description?.toLowerCase().includes(search.toLowerCase()) ||
-      r.category.toLowerCase().includes(search.toLowerCase())
-    );
-    if (statusFilter !== 'all') result = result.filter(r => r.status === statusFilter);
-    setFiltered(result);
-  }, [search, statusFilter, requests]);
-
-  async function checkUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/auth'); return; }
-    setUser(user);
-    fetchRequests(user.id, user.email!, user.user_metadata?.full_name || user.email!);
-  }
-
-  async function fetchRequests(userId: string, email: string, name: string) {
-    setLoading(true);
-    const { data } = await supabase
-      .from('requests')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    setRequests(data || []);
-    setLoading(false);
-  }
-
-  const validateForm = () => {
-    const errs: Record<string, string> = {};
-    if (!form.title.trim() || form.title.length < 5) errs.title = 'Title must be at least 5 characters.';
-    if (!form.description.trim() || form.description.length < 10) errs.description = 'Description must be at least 10 characters.';
-    return errs;
+  const handlePause = (subId: string) => {
+    const res = store.customerPauseSubscription(subId, customerEmail);
+    setFeedbackMsg({ text: res.message, type: res.success ? 'success' : 'error' });
+    setTimeout(() => setFeedbackMsg(null), 3000);
   };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const errs = validateForm();
-    if (Object.keys(errs).length > 0) { setFormErr(errs); return; }
-    setSubmitting(true);
-    const { data: { user: u } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('requests').insert([{
-      title: form.title.trim(),
-      description: form.description.trim(),
-      category: form.category,
-      priority: form.priority,
-      status: 'pending',
-      user_id: u?.id,
-      user_name: u?.user_metadata?.full_name || u?.email,
-      user_email: u?.email,
-    }]);
-    if (!error) {
-      setForm({ title: '', description: '', category: 'General', priority: 'Medium' });
-      setFormErr({});
-      setShowModal(false);
-      fetchRequests(u!.id, u!.email!, u!.user_metadata?.full_name || u!.email!);
-    }
-    setSubmitting(false);
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push('/auth');
-  }
-
-  const counts = {
-    total: requests.length,
-    pending: requests.filter(r => r.status === 'pending').length,
-    inProgress: requests.filter(r => r.status === 'in-progress').length,
-    completed: requests.filter(r => r.status === 'completed').length,
-    rejected: requests.filter(r => r.status === 'rejected').length,
+  const handleResume = (subId: string) => {
+    const res = store.customerResumeSubscription(subId, customerEmail);
+    setFeedbackMsg({ text: res.message, type: res.success ? 'success' : 'error' });
+    setTimeout(() => setFeedbackMsg(null), 3000);
   };
 
-  const priorityColor: Record<string, string> = {
-    Low: 'bg-slate-100 text-slate-600',
-    Medium: 'bg-blue-100 text-blue-700',
-    High: 'bg-orange-100 text-orange-700',
-    Urgent: 'bg-red-100 text-red-700',
+  const handleRenew = (subId: string) => {
+    const res = store.customerRenewSubscription(subId, customerEmail);
+    setFeedbackMsg({ text: res.message, type: res.success ? 'success' : 'error' });
+    setTimeout(() => setFeedbackMsg(null), 3000);
   };
+
+  const outstandingBalance = invoices
+    .filter((i) => i.status !== 'paid' && i.status !== 'cancelled')
+    .reduce((sum, i) => sum + i.amount_due, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 h-15 flex items-center justify-between py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'#714B67'}}>
-              <ClipboardList size={16} className="text-white" />
-            </div>
-            <div>
-              <span className="font-bold text-gray-900 text-base">FlowDesk</span>
-              <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">User</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-right">
-              <div className="text-sm font-medium text-gray-900">{user?.user_metadata?.full_name || 'User'}</div>
-              <div className="text-xs text-gray-400">{user?.email}</div>
-            </div>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-              style={{background:'#714B67'}}>
-              {(user?.user_metadata?.full_name || user?.email || 'U')[0].toUpperCase()}
-            </div>
-            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 px-3 py-1.5 hover:bg-red-50 rounded-lg">
-              <LogOut size={16} /> <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <Navbar />
 
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        {/* Page Title */}
-        <div className="flex items-center justify-between mb-6">
+      {/* Customer Header Banner */}
+      <div className="bg-white border-b border-gray-200 px-6 py-6 shadow-sm">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">My Requests</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Track and manage all your submitted requests</p>
-          </div>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
-            <PlusCircle size={16} /> New Request
-          </button>
-        </div>
-
-        {/* Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          {[
-            { label: 'Total', value: counts.total, icon: ClipboardList, color: '#714B67', bg: '#f3eef1' },
-            { label: 'Pending', value: counts.pending, icon: Clock, color: '#d97706', bg: '#fffbeb' },
-            { label: 'In Progress', value: counts.inProgress, icon: AlertCircle, color: '#2563eb', bg: '#eff6ff' },
-            { label: 'Completed', value: counts.completed, icon: CheckCircle2, color: '#16a34a', bg: '#f0fdf4' },
-            { label: 'Rejected', value: counts.rejected, icon: XCircle, color: '#dc2626', bg: '#fef2f2' },
-          ].map((m) => (
-            <div key={m.label} className="odoo-card p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{background: m.bg}}>
-                <m.icon size={20} style={{color: m.color}} />
-              </div>
-              <div>
-                <div className="text-xl font-bold text-gray-900">{m.value}</div>
-                <div className="text-xs text-gray-500">{m.label}</div>
-              </div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-purple-100 text-[#714B67] text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                Self-Service Customer Portal
+              </span>
+              <span className="text-xs text-gray-400">• Secure Account Access</span>
             </div>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="odoo-card p-4 mb-5 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title, description or category..."
-              className="input-field pl-9" />
+            <h1 className="text-2xl font-black text-gray-900">
+              Welcome, {currentUser.role === 'customer' ? currentUser.full_name : 'Marcus Vance'}
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">
+              {currentUser.role === 'customer' ? currentUser.company_name : 'Acme Corporation'} • Account Email: {customerEmail}
+            </p>
           </div>
-          <div className="relative">
-            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-              className="input-field pl-9 pr-8 appearance-none w-full sm:w-44">
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
-        </div>
 
-        {/* Table */}
-        <div className="odoo-card overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{borderColor:'#714B67', borderTopColor:'transparent'}} />
+          <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs">
+            <div>
+              <span className="text-[10px] text-gray-400 uppercase font-bold block">
+                Outstanding Balance
+              </span>
+              <span className={`text-xl font-black ${outstandingBalance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                ${outstandingBalance.toFixed(2)}
+              </span>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <ClipboardList size={40} className="mx-auto text-gray-300 mb-3" />
-              <h3 className="font-semibold text-gray-600 mb-1">
-                {requests.length === 0 ? 'No requests yet' : 'No matching requests'}
-              </h3>
-              <p className="text-sm text-gray-400 mb-4">
-                {requests.length === 0 ? 'Submit your first request to get started.' : 'Try adjusting your search or filter.'}
-              </p>
-              {requests.length === 0 && (
-                <button onClick={() => setShowModal(true)} className="btn-primary">
-                  <PlusCircle size={15} /> New Request
-                </button>
-              )}
+            <div className="border-l border-gray-200 pl-4">
+              <span className="text-[10px] text-gray-400 uppercase font-bold block">
+                Active Plans
+              </span>
+              <span className="text-xl font-black text-gray-900">
+                {subscriptions.filter((s) => s.status === 'active').length}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        {feedbackMsg && (
+          <div
+            className={`p-3 rounded-lg text-xs font-semibold flex items-center gap-2 ${
+              feedbackMsg.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}
+          >
+            {feedbackMsg.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+            <span>{feedbackMsg.text}</span>
+          </div>
+        )}
+
+        {/* Section 1: Subscriptions */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers size={18} className="text-[#714B67]" />
+              <h2 className="text-base font-bold text-gray-900">My Subscriptions & Packages</h2>
+            </div>
+            <span className="text-xs text-gray-500">
+              Manage your renewals and licenses without waiting on support
+            </span>
+          </div>
+
+          {subscriptions.length === 0 ? (
+            <div className="odoo-card p-8 text-center text-xs text-gray-500">
+              No active subscriptions found for this account.
             </div>
           ) : (
-            <table className="odoo-table">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {subscriptions.map((sub) => (
+                <div key={sub.id} className="odoo-card p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-bold text-[#714B67] text-xs">{sub.sub_number}</span>
+                      <span
+                        className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                          sub.status === 'active'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : sub.status === 'paused'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {sub.status}
+                      </span>
+                    </div>
+
+                    <h3 className="font-bold text-gray-900 text-base mb-1">{sub.plan_name}</h3>
+                    <div className="text-2xl font-black text-gray-900 mb-3">
+                      ${sub.total_amount.toFixed(2)}
+                      <span className="text-xs font-normal text-gray-500"> / billing cycle</span>
+                    </div>
+
+                    {/* Subscription Lines */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-1.5 mb-4 text-xs">
+                      <span className="font-bold text-[10px] uppercase text-gray-400 block mb-1">
+                        Included Products & Variants
+                      </span>
+                      {sub.lines.map((l) => (
+                        <div key={l.id} className="flex justify-between text-gray-700">
+                          <span>
+                            {l.quantity}x {l.product_name}
+                            {l.variant_name && (
+                              <span className="text-purple-700 font-medium ml-1">
+                                ({l.variant_name})
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-semibold text-gray-900">${l.total.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Dates */}
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-4 bg-purple-50/50 p-2.5 rounded-lg border border-purple-100">
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">
+                          Next Billing Date
+                        </span>
+                        <span className="font-bold text-amber-800">{sub.next_billing_date}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">
+                          Contract Expiry
+                        </span>
+                        <span className="font-bold text-gray-800">{sub.expiry_date}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Self-Service Action Buttons */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                    {sub.status === 'active' && (
+                      <button
+                        onClick={() => handlePause(sub.id)}
+                        className="btn-secondary text-xs py-1.5 px-3 flex-1 justify-center gap-1.5"
+                      >
+                        <Pause size={13} />
+                        Pause Plan
+                      </button>
+                    )}
+                    {sub.status === 'paused' && (
+                      <button
+                        onClick={() => handleResume(sub.id)}
+                        className="btn-primary text-xs py-1.5 px-3 flex-1 justify-center gap-1.5"
+                      >
+                        <Play size={13} />
+                        Resume Plan
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleRenew(sub.id)}
+                      className="btn-secondary text-xs py-1.5 px-3 flex-1 justify-center gap-1.5"
+                    >
+                      <RotateCw size={13} />
+                      Renew Contract
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Invoices & Receipts */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-[#714B67]" />
+              <h2 className="text-base font-bold text-gray-900">Invoices & Billing History</h2>
+            </div>
+            <span className="text-xs text-gray-500">
+              Download itemized PDF receipts and pay outstanding invoices
+            </span>
+          </div>
+
+          <div className="odoo-card overflow-hidden">
+            <table className="odoo-table text-xs">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Title</th>
-                  <th>Category</th>
-                  <th>Priority</th>
+                  <th>Invoice #</th>
+                  <th>Billing Period</th>
+                  <th>Due Date</th>
+                  <th>Total Billed</th>
+                  <th>Amount Paid</th>
+                  <th>Balance Due</th>
                   <th>Status</th>
-                  <th>Submitted</th>
+                  <th className="text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((req, i) => (
-                  <tr key={req.id}>
-                    <td className="text-gray-400 text-xs font-mono">{String(req.id).padStart(4,'0')}</td>
-                    <td>
-                      <div className="font-medium text-gray-900">{req.title}</div>
-                      {req.description && (
-                        <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{req.description}</div>
-                      )}
-                    </td>
-                    <td><span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{req.category}</span></td>
-                    <td><span className={`text-xs px-2 py-1 rounded font-medium ${priorityColor[req.priority] || 'bg-gray-100 text-gray-600'}`}>{req.priority}</span></td>
-                    <td>
-                      <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                        {req.status === 'in-progress' ? 'In Progress' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="text-xs text-gray-400">{formatDate(req.created_at)}</td>
-                  </tr>
-                ))}
+                {invoices.map((inv) => {
+                  const isOverdue = inv.status !== 'paid' && inv.due_date < todayStr;
+                  return (
+                    <tr key={inv.id}>
+                      <td className="font-bold text-[#714B67]">{inv.invoice_number}</td>
+                      <td className="text-gray-600">
+                        {inv.billing_period_start} to {inv.billing_period_end}
+                      </td>
+                      <td>
+                        <span className={isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'}>
+                          {inv.due_date} {isOverdue && '(OVERDUE)'}
+                        </span>
+                      </td>
+                      <td className="font-bold text-gray-900">${inv.total_amount.toFixed(2)}</td>
+                      <td className="text-emerald-600 font-medium">${inv.amount_paid.toFixed(2)}</td>
+                      <td className="font-black text-[#714B67]">${inv.amount_due.toFixed(2)}</td>
+                      <td>
+                        <span
+                          className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                            inv.status === 'paid'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
+                      </td>
+                      <td className="text-right space-x-2">
+                        <button
+                          onClick={() => setSelectedInvoiceForPrint(inv)}
+                          className="btn-secondary text-xs py-1 px-2.5 inline-flex items-center gap-1"
+                        >
+                          <Printer size={12} /> View / Print
+                        </button>
+                        {inv.status !== 'paid' && (
+                          <button
+                            onClick={() => setSelectedInvoiceForPayment(inv)}
+                            className="btn-primary text-xs py-1 px-2.5 inline-flex items-center gap-1"
+                          >
+                            <DollarSign size={12} /> Pay Now
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          )}
-        </div>
-        <div className="text-xs text-gray-400 mt-2 px-1">
-          Showing {filtered.length} of {requests.length} requests
+          </div>
         </div>
       </main>
 
-      {/* New Request Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between p-6 border-b">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">New Request</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Fill in the details below to submit your request</p>
-              </div>
-              <button onClick={() => { setShowModal(false); setFormErr({}); }} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Request Title *</label>
-                <input value={form.title} onChange={(e) => setForm({...form, title: e.target.value})}
-                  placeholder="Brief title describing your request"
-                  className={`input-field ${formErr.title ? 'border-red-400' : ''}`} />
-                {formErr.title && <p className="text-xs text-red-500 mt-1">{formErr.title}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
-                <textarea value={form.description} onChange={(e) => setForm({...form, description: e.target.value})}
-                  placeholder="Provide detailed description of your request..."
-                  rows={4} className={`input-field resize-none ${formErr.description ? 'border-red-400' : ''}`} />
-                {formErr.description && <p className="text-xs text-red-500 mt-1">{formErr.description}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
-                  <select value={form.category} onChange={(e) => setForm({...form, category: e.target.value})} className="input-field">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Priority</label>
-                  <select value={form.priority} onChange={(e) => setForm({...form, priority: e.target.value})} className="input-field">
-                    {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowModal(false); setFormErr({}); }} className="btn-secondary flex-1 justify-center">
-                  Cancel
-                </button>
-                <button type="submit" disabled={submitting} className="btn-primary flex-1 justify-center">
-                  {submitting ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Submitting...
-                    </span>
-                  ) : 'Submit Request'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Invoice Print Modal */}
+      <InvoicePrintModal
+        invoice={selectedInvoiceForPrint}
+        onClose={() => setSelectedInvoiceForPrint(null)}
+        onRegisterPayment={(inv) => {
+          setSelectedInvoiceForPrint(null);
+          setSelectedInvoiceForPayment(inv);
+        }}
+      />
+
+      {/* Register Payment Modal */}
+      <RegisterPaymentModal
+        invoice={selectedInvoiceForPayment}
+        onClose={() => setSelectedInvoiceForPayment(null)}
+        onPaymentRecorded={() => {
+          refreshPortalData();
+        }}
+      />
     </div>
   );
 }
