@@ -1,9 +1,10 @@
-# Brightloop Software — Subscription Management System
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/67ab6173-90ad-421d-930f-77b66409f562" /># Brightloop Software — Subscription Management System
 ### Odoo × FLUX Lucknow Hackathon 2026 (Official Solution)
 
 > 🏆 Built by **Amit Tiwari** ([`@amittiwari006`](https://github.com/amittiwari006))  , Utkarsh , shiwanshi, aakriti.
 > **GitHub Repository:** [https://github.com/amittiwari006/odoo-starter-kit](https://github.com/amittiwari006/odoo-starter-kit)  
-> **Live Web Application:** [https://odoo-starter-kit.vercel.app](https://odoo-starter-kit.vercel.app)
+> **Live Web Application:** [https://odoo-starter-kit.vercel.app](https://odoo-starter-kit-five.vercel.app/)
+)
 
 ---
 
