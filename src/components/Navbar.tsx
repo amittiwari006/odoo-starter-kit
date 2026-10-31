@@ -107,8 +107,8 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
                   }`}
                 >
                   <div>
-                    <div className="font-semibold">Sarah Connor (Admin)</div>
-                    <div className="text-[11px] text-gray-500">Full control, discounts, tax, staff</div>
+                    <div className="font-semibold">Amit Tiwari (Admin)</div>
+                    <div className="text-[11px] text-gray-500">Master control, plans, discounts, staff</div>
                   </div>
                   {currentUser.role === 'admin' && <CheckCircle2 size={15} className="text-[#714B67]" />}
                 </button>
@@ -119,7 +119,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
                   }`}
                 >
                   <div>
-                    <div className="font-semibold">Alex Rivera (Staff)</div>
+                    <div className="font-semibold">Utkarsh & Shiwanshi (Staff)</div>
                     <div className="text-[11px] text-gray-500">Quotes, billing runs, payments</div>
                   </div>
                   {currentUser.role === 'staff' && <CheckCircle2 size={15} className="text-[#714B67]" />}
@@ -131,7 +131,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
                   }`}
                 >
                   <div>
-                    <div className="font-semibold">Marcus Vance (Customer)</div>
+                    <div className="font-semibold">Rahul Verma (Customer)</div>
                     <div className="text-[11px] text-gray-500">Self-service portal, view bills, renew</div>
                   </div>
                   {currentUser.role === 'customer' && <CheckCircle2 size={15} className="text-[#714B67]" />}

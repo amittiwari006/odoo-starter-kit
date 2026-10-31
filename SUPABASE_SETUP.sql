@@ -1,6 +1,7 @@
 -- ==============================================================================
 -- BRIGHTLOOP SOFTWARE - SUBSCRIPTION MANAGEMENT SYSTEM (ODOO HACKATHON 2026)
 -- Complete Production Database Schema & Seed Data for Supabase (PostgreSQL)
+-- Team: Amit Tiwari (Admin), Utkarsh (Staff), Shiwanshi (Staff), Aakriti (Finance)
 -- ==============================================================================
 
 -- 1. EXTENSIONS
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. PRODUCTS & VARIANTS
+-- 3. PRODUCTS & VARIANTS (PDF Scene 2)
 CREATE TABLE IF NOT EXISTS products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. SUBSCRIPTION PLANS
+-- 4. SUBSCRIPTION PLANS (PDF Scene 2)
 CREATE TABLE IF NOT EXISTS subscription_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -59,7 +60,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. QUOTATION TEMPLATES
+-- 5. QUOTATION TEMPLATES (PDF Scene 3)
 CREATE TABLE IF NOT EXISTS quotation_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -81,11 +82,11 @@ CREATE TABLE IF NOT EXISTS quotation_template_lines (
   unit_price NUMERIC(12, 2) NOT NULL DEFAULT 0.00
 );
 
--- 6. TAX RULES
+-- 6. TAX RULES (PDF Scene 4)
 CREATE TABLE IF NOT EXISTS taxes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  rate NUMERIC(6, 2) NOT NULL DEFAULT 18.00, -- Percentage
+  rate NUMERIC(6, 2) NOT NULL DEFAULT 18.00,
   type TEXT DEFAULT 'percent' CHECK (type IN ('percent', 'fixed')),
   is_default BOOLEAN DEFAULT FALSE,
   description TEXT DEFAULT '',
@@ -93,7 +94,7 @@ CREATE TABLE IF NOT EXISTS taxes (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. DISCOUNT RULES (Admin only)
+-- 7. DISCOUNT RULES (PDF Scene 5: Admin only)
 CREATE TABLE IF NOT EXISTS discounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT UNIQUE NOT NULL,
@@ -110,14 +111,14 @@ CREATE TABLE IF NOT EXISTS discounts (
   target_product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   target_product_name TEXT DEFAULT '',
   is_active BOOLEAN DEFAULT TRUE,
-  created_by TEXT DEFAULT 'admin@brightloop.com',
+  created_by TEXT DEFAULT 'amit@brightloop.com',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. SUBSCRIPTIONS
+-- 8. SUBSCRIPTIONS (PDF Scene 3 & 4)
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sub_number TEXT UNIQUE NOT NULL, -- e.g. SUB-2026-0001
+  sub_number TEXT UNIQUE NOT NULL,
   customer_id UUID REFERENCES profiles(id) ON DELETE RESTRICT,
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
@@ -156,10 +157,10 @@ CREATE TABLE IF NOT EXISTS subscription_lines (
   total NUMERIC(12, 2) NOT NULL DEFAULT 0.00
 );
 
--- 9. INVOICES
+-- 9. INVOICES (PDF Scene 4)
 CREATE TABLE IF NOT EXISTS invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  invoice_number TEXT UNIQUE NOT NULL, -- e.g. INV-2026-0001
+  invoice_number TEXT UNIQUE NOT NULL,
   subscription_id UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
   subscription_number TEXT NOT NULL DEFAULT '',
   customer_id UUID REFERENCES profiles(id) ON DELETE RESTRICT,
@@ -196,10 +197,10 @@ CREATE TABLE IF NOT EXISTS invoice_lines (
   line_total NUMERIC(12, 2) NOT NULL DEFAULT 0.00
 );
 
--- 10. PAYMENTS
+-- 10. PAYMENTS (PDF Scene 6)
 CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_number TEXT UNIQUE NOT NULL, -- e.g. PAY-2026-0001
+  payment_number TEXT UNIQUE NOT NULL,
   invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
   invoice_number TEXT NOT NULL,
   subscription_id UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
@@ -213,7 +214,7 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. AUDIT / ACTIVITY LOG
+-- 11. AUDIT & ACTIVITY LOG
 CREATE TABLE IF NOT EXISTS activity_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   action TEXT NOT NULL,
@@ -224,7 +225,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. HIGH-PERFORMANCE INDEXES (< 2 second response guarantee)
+-- 12. HIGH PERFORMANCE INDEXES
 CREATE INDEX IF NOT EXISTS idx_subs_customer ON subscriptions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_subs_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subs_next_billing ON subscriptions(next_billing_date);
@@ -248,8 +249,20 @@ ALTER TABLE invoice_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
--- 14. POLICIES (Admin controls all, Staff operates, Customers see own portal)
+-- 14. SAFE POLICY CLEANUP (Avoids Error 42710 "policy already exists")
+DROP POLICY IF EXISTS "Public profiles can read own" ON profiles;
+DROP POLICY IF EXISTS "Users can manage own profile" ON profiles;
+DROP POLICY IF EXISTS "Public products viewable" ON products;
+DROP POLICY IF EXISTS "Public plans viewable" ON subscription_plans;
+DROP POLICY IF EXISTS "Allow authenticated read subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Allow authenticated read invoices" ON invoices;
+DROP POLICY IF EXISTS "Allow insert update for authenticated" ON subscriptions;
+DROP POLICY IF EXISTS "Allow insert update for invoices" ON invoices;
+DROP POLICY IF EXISTS "Allow payments recording" ON payments;
+
+-- CREATE CLEAN POLICIES
 CREATE POLICY "Public profiles can read own" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users can manage own profile" ON profiles FOR ALL USING (true);
 CREATE POLICY "Public products viewable" ON products FOR SELECT USING (true);
 CREATE POLICY "Public plans viewable" ON subscription_plans FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated read subscriptions" ON subscriptions FOR SELECT USING (true);
@@ -259,61 +272,66 @@ CREATE POLICY "Allow insert update for invoices" ON invoices FOR ALL USING (true
 CREATE POLICY "Allow payments recording" ON payments FOR ALL USING (true);
 
 -- ==============================================================================
--- 15. SEED DATA - REAL BRIGHTLOOP SOFTWARE CATALOG & SCENARIOS
+-- 15. REALISTIC SEED DATA (Amit, Utkarsh, Shiwanshi, Aakriti & Indian Customers)
 -- ==============================================================================
 
--- Admin, Staff, and Customer Profiles
-INSERT INTO profiles (id, email, full_name, role, company_name)
+-- Team Members & Customers
+INSERT INTO profiles (id, email, full_name, role, company_name, phone)
 VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'admin@brightloop.com', 'Sarah Connor (Admin)', 'admin', 'Brightloop HQ'),
-  ('a0000000-0000-0000-0000-000000000002', 'staff@brightloop.com', 'Alex Rivera (Staff)', 'staff', 'Brightloop Sales & Support'),
-  ('a0000000-0000-0000-0000-000000000003', 'client@acmecorp.com', 'Marcus Vance', 'customer', 'Acme Corporation'),
-  ('a0000000-0000-0000-0000-000000000004', 'finance@zenithretail.com', 'Priya Sharma', 'customer', 'Zenith Retail Chain')
-ON CONFLICT (email) DO NOTHING;
+  ('a0000000-0000-0000-0000-000000000001', 'amit@brightloop.com', 'Amit Tiwari', 'admin', 'Brightloop HQ', '+91 98765 43210'),
+  ('a0000000-0000-0000-0000-000000000002', 'utkarsh@brightloop.com', 'Utkarsh', 'staff', 'Brightloop Operations', '+91 98123 45678'),
+  ('a0000000-0000-0000-0000-000000000003', 'shiwanshi@brightloop.com', 'Shiwanshi', 'staff', 'Brightloop Sales Lead', '+91 98234 56789'),
+  ('a0000000-0000-0000-0000-000000000004', 'aakriti@brightloop.com', 'Aakriti', 'staff', 'Brightloop Finance Lead', '+91 98345 67890'),
+  ('a0000000-0000-0000-0000-000000000005', 'rahul@apexretail.com', 'Rahul Verma', 'customer', 'Apex Retail Chain Ltd', '+91 98456 78901'),
+  ('a0000000-0000-0000-0000-000000000006', 'priya@zenithcloud.com', 'Priya Sharma', 'customer', 'Zenith Cloud Solutions', '+91 98567 89012')
+ON CONFLICT (email) DO UPDATE SET
+  full_name = EXCLUDED.full_name,
+  role = EXCLUDED.role,
+  company_name = EXCLUDED.company_name;
 
--- Products (Including the Odoo brand variant mentioned in PDF Scene 2)
+-- Products (PDF Scene 2: Odoo Brand variant adds +560)
 INSERT INTO products (id, name, type, sales_price, cost_price, notes)
 VALUES
   ('b0000000-0000-0000-0000-000000000001', 'Brightloop Enterprise ERP', 'Software', 1200.00, 450.00, 'Core SaaS billing engine with automated workflows'),
   ('b0000000-0000-0000-0000-000000000002', 'Automated Marketing Suite', 'Add-on', 450.00, 120.00, 'Email campaigns, drip sequences and lead scoring'),
-  ('b0000000-0000-0000-0000-000000000003', 'Dedicated 24/7 Premium SLA', 'Service', 350.00, 100.00, 'Guaranteed 15-minute response and dedicated engineer'),
+  ('b0000000-0000-0000-0000-000000000003', 'Dedicated 24/7 Premium SLA', 'Service', 350.00, 100.00, 'Guaranteed 15-minute response with Amit & Utkarsh tech team'),
   ('b0000000-0000-0000-0000-000000000004', 'Cloud Security Shield', 'Software', 290.00, 80.00, 'End-to-end data encryption and compliance vault')
 ON CONFLICT DO NOTHING;
 
--- Variants (PDF Scene 2: "where choosing the Odoo brand adds 560 to the price")
+-- Variants (PDF Scene 2: choosing Odoo brand adds 560 to price)
 INSERT INTO product_variants (id, product_id, attribute_name, attribute_value, price_extra, sku)
 VALUES
-  ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Brand', 'Odoo Edition', 560.00, 'ERP-ODOO-01'),
-  ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'Brand', 'Standard Brightloop', 0.00, 'ERP-STD-01'),
-  ('c0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000002', 'Tier', 'Unlimited Contacts', 150.00, 'MKT-UNL-01')
+  ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Brand', 'Odoo Brand Edition', 560.00, 'BL-ERP-ODOO'),
+  ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'Brand', 'Brightloop Standard', 0.00, 'BL-ERP-STD'),
+  ('c0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000002', 'Tier', 'Unlimited Contacts', 150.00, 'BL-MKT-UNL')
 ON CONFLICT DO NOTHING;
 
 -- Subscription Plans (Daily, Weekly, Monthly, Yearly + Lifecycle Rules)
 INSERT INTO subscription_plans (id, name, code, price, billing_interval, min_quantity, start_date, auto_close_on_expiry, allow_early_close, allow_pause, allow_renew)
 VALUES
-  ('d0000000-0000-0000-0000-000000000001', 'Enterprise Monthly Pro', 'PLAN-M-ENT', 1200.00, 'monthly', 1, '2026-01-01', FALSE, TRUE, TRUE, TRUE),
-  ('d0000000-0000-0000-0000-000000000002', 'Annual Growth Contract', 'PLAN-Y-GROW', 11500.00, 'yearly', 5, '2026-01-01', TRUE, TRUE, TRUE, TRUE),
-  ('d0000000-0000-0000-0000-000000000003', 'Agile Weekly Sprint', 'PLAN-W-SPRINT', 350.00, 'weekly', 1, '2026-01-01', TRUE, TRUE, FALSE, TRUE),
-  ('d0000000-0000-0000-0000-000000000004', 'Daily Kiosk License', 'PLAN-D-KIOSK', 65.00, 'daily', 2, '2026-01-01', TRUE, FALSE, FALSE, FALSE)
+  ('d0000000-0000-0000-0000-000000000001', 'Business Monthly Pro', 'BIZ-MONTHLY', 1200.00, 'monthly', 1, '2026-01-01', FALSE, TRUE, TRUE, TRUE),
+  ('d0000000-0000-0000-0000-000000000002', 'Enterprise Annual Contract', 'ENT-YEARLY', 11500.00, 'yearly', 3, '2026-01-01', TRUE, TRUE, TRUE, TRUE),
+  ('d0000000-0000-0000-0000-000000000003', 'Agile Weekly Sprint', 'DEV-WEEKLY', 350.00, 'weekly', 1, '2026-01-01', TRUE, TRUE, FALSE, TRUE),
+  ('d0000000-0000-0000-0000-000000000004', 'Daily Kiosk License', 'EVENT-DAILY', 75.00, 'daily', 2, '2026-01-01', TRUE, FALSE, FALSE, FALSE)
 ON CONFLICT DO NOTHING;
 
--- Quotation Template (PDF Scene 3: template with right plan and product lines)
+-- Quotation Templates (PDF Scene 3)
 INSERT INTO quotation_templates (id, name, plan_id, plan_name, validity_days, notes)
 VALUES
-  ('e0000000-0000-0000-0000-000000000001', 'Odoo Enterprise SaaS Bundle', 'd0000000-0000-0000-0000-000000000001', 'Enterprise Monthly Pro', 15, 'Standard quote for mid-to-large business customers')
+  ('e0000000-0000-0000-0000-000000000001', 'Odoo Enterprise SaaS Bundle', 'd0000000-0000-0000-0000-000000000001', 'Business Monthly Pro', 15, 'Standard quote prepared by Shiwanshi for mid-to-large customers')
 ON CONFLICT DO NOTHING;
 
--- Taxes (PDF Scene 4: rules set by admin)
+-- Taxes (PDF Scene 4)
 INSERT INTO taxes (id, name, rate, is_default, description)
 VALUES
-  ('t0000000-0000-0000-0000-000000000001', 'Standard GST', 18.00, TRUE, 'General standard goods & services tax'),
-  ('t0000000-0000-0000-0000-000000000002', 'Reduced Tech VAT', 10.00, FALSE, 'Special cross-border software rate'),
-  ('t0000000-0000-0000-0000-000000000003', 'Zero-Rated Export', 0.00, FALSE, 'Foreign customer export tax exemption')
+  ('t0000000-0000-0000-0000-000000000001', 'Standard GST (18%)', 18.00, TRUE, 'Indian GST standard software rate'),
+  ('t0000000-0000-0000-0000-000000000002', 'Tech Export VAT (10%)', 10.00, FALSE, 'Cross-border digital service export'),
+  ('t0000000-0000-0000-0000-000000000003', 'Zero-Rated / SEZ (0%)', 0.00, FALSE, 'Special Economic Zone exemption')
 ON CONFLICT DO NOTHING;
 
--- Discounts (PDF Scene 5: created only by Admin, fixed or %, min purchase/qty, usage limits)
-INSERT INTO discounts (id, code, name, type, value, min_purchase_amount, min_quantity, start_date, end_date, max_usage_limit, current_usage_count, scope)
+-- Discounts (PDF Scene 5: Admin only)
+INSERT INTO discounts (id, code, name, type, value, min_purchase_amount, min_quantity, start_date, end_date, max_usage_limit, current_usage_count, scope, created_by)
 VALUES
-  ('f0000000-0000-0000-0000-000000000001', 'VOLUME15', '15% Volume Discount (>5 seats)', 'percent', 15.00, 1000.00, 5, '2026-01-01', '2026-12-31', 50, 4, 'whole_subscription'),
-  ('f0000000-0000-0000-0000-000000000002', 'ODOO500', 'Special $500 Odoo Onboarding Credit', 'fixed', 500.00, 1500.00, 1, '2026-01-01', '2026-12-31', 20, 2, 'whole_subscription')
+  ('f0000000-0000-0000-0000-000000000001', 'VOLUME15', '15% Volume Discount (>3 seats)', 'percent', 15.00, 1000.00, 3, '2026-01-01', '2026-12-31', 50, 4, 'whole_subscription', 'amit@brightloop.com'),
+  ('f0000000-0000-0000-0000-000000000002', 'ODOO200', '$200 Odoo Welcome Credit', 'fixed', 200.00, 1500.00, 1, '2026-01-01', '2026-12-31', 20, 2, 'whole_subscription', 'amit@brightloop.com')
 ON CONFLICT DO NOTHING;

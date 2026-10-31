@@ -895,11 +895,11 @@ export default function AdminWorkspacePage() {
 
                   <button
                     onClick={() => {
-                      // Instant Quote Generation for Acme Corp
+                      // Instant Quote Generation for Apex Retail
                       const newSub = store.createSubscriptionFromTemplate(tmpl.id, {
                         id: 'usr-cust-1',
-                        name: 'Marcus Vance (Acme Corp)',
-                        email: 'marcus@acmecorp.com'
+                        name: 'Rahul Verma (Apex Retail)',
+                        email: 'rahul@apexretail.com'
                       });
                       if (newSub) {
                         alert(`Created quote ${newSub.sub_number} from template!`);

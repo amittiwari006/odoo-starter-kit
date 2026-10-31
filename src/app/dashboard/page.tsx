@@ -24,7 +24,7 @@ import {
 
 export default function CustomerPortalPage() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(store.getCurrentUser());
-  const [customerEmail, setCustomerEmail] = useState<string>('marcus@acmecorp.com');
+  const [customerEmail, setCustomerEmail] = useState<string>('rahul@apexretail.com');
   const [todayStr, setTodayStr] = useState<string>('2026-10-31');
 
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(
@@ -41,7 +41,7 @@ export default function CustomerPortalPage() {
   const refreshPortalData = () => {
     const user = store.getCurrentUser();
     setCurrentUser(user);
-    const email = user.role === 'customer' ? user.email : 'marcus@acmecorp.com';
+    const email = user.role === 'customer' ? user.email : 'rahul@apexretail.com';
     setCustomerEmail(email);
     setSubscriptions(store.getCustomerSubscriptions(email));
     setInvoices(store.getCustomerInvoices(email));
@@ -93,10 +93,10 @@ export default function CustomerPortalPage() {
               <span className="text-xs text-gray-400">• Secure Account Access</span>
             </div>
             <h1 className="text-2xl font-black text-gray-900">
-              Welcome, {currentUser.role === 'customer' ? currentUser.full_name : 'Marcus Vance'}
+              Welcome, {currentUser.role === 'customer' ? currentUser.full_name : 'Rahul Verma'}
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              {currentUser.role === 'customer' ? currentUser.company_name : 'Acme Corporation'} • Account Email: {customerEmail}
+              {currentUser.role === 'customer' ? currentUser.company_name : 'Apex Retail Chain Ltd'} • Account Email: {customerEmail}
             </p>
           </div>
 

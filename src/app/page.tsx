@@ -104,7 +104,7 @@ export default function LandingPage() {
                   </span>
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition text-[#714B67]" />
                 </div>
-                <div className="text-sm font-black text-gray-900">Sarah Connor</div>
+                <div className="text-sm font-black text-gray-900">Amit Tiwari</div>
                 <div className="text-[11px] text-gray-500 font-normal">Full control, rules & staff</div>
               </button>
 
@@ -118,7 +118,7 @@ export default function LandingPage() {
                   </span>
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition text-[#714B67]" />
                 </div>
-                <div className="text-sm font-black text-gray-900">Alex Rivera</div>
+                <div className="text-sm font-black text-gray-900">Utkarsh & Shiwanshi</div>
                 <div className="text-[11px] text-gray-500 font-normal">Quotes, billing & payments</div>
               </button>
 
@@ -132,7 +132,7 @@ export default function LandingPage() {
                   </span>
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition text-[#714B67]" />
                 </div>
-                <div className="text-sm font-black text-gray-900">Marcus Vance</div>
+                <div className="text-sm font-black text-gray-900">Rahul Verma</div>
                 <div className="text-[11px] text-gray-500 font-normal">Self-service portal & renew</div>
               </button>
             </div>
@@ -283,7 +283,7 @@ export default function LandingPage() {
                 Scene 6 & 7: Cash & Finance Lead
               </div>
               <p className="text-gray-600 leading-relaxed">
-                Multi-method payment recording against invoices, accounts receivable aging tracker, overdue invoice chasing, and sub-2-second MRR/ARR analytics.
+                Multi-method payment recording against invoices, accounts receivable aging tracker, overdue invoice chasing, and sub-2-second MRR/ARR analytics by Aakriti.
               </p>
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function LandingPage() {
             <span className="font-bold text-sm">Brightloop Software Platform</span>
           </div>
           <div className="text-gray-400 text-center sm:text-right">
-            Built for Odoo × FLUX Lucknow Hackathon 2026 by Amit Tiwari (<span className="text-white">@amittiwari006</span>)
+            Built for Odoo × FLUX Lucknow Hackathon 2026 by Amit Tiwari, Utkarsh, Shiwanshi, Aakriti (<span className="text-white">@amittiwari006</span>)
           </div>
         </div>
       </footer>

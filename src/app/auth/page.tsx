@@ -184,21 +184,21 @@ export default function AuthPage() {
               className="bg-white text-[#714B67] hover:bg-purple-50 font-bold p-2.5 rounded-lg text-left transition shadow-xs"
             >
               <div className="text-[10px] uppercase text-gray-500">Admin Control</div>
-              <div className="font-bold text-xs">Sarah Connor</div>
+              <div className="font-bold text-xs">Amit Tiwari</div>
             </button>
             <button
               onClick={() => handleQuickLogin('staff')}
               className="bg-white text-[#714B67] hover:bg-purple-50 font-bold p-2.5 rounded-lg text-left transition shadow-xs"
             >
               <div className="text-[10px] uppercase text-gray-500">Internal Staff</div>
-              <div className="font-bold text-xs">Alex Rivera</div>
+              <div className="font-bold text-xs">Utkarsh & Shiwanshi</div>
             </button>
             <button
               onClick={() => handleQuickLogin('customer')}
               className="bg-white text-[#714B67] hover:bg-purple-50 font-bold p-2.5 rounded-lg text-left transition shadow-xs"
             >
               <div className="text-[10px] uppercase text-gray-500">Customer Portal</div>
-              <div className="font-bold text-xs">Marcus Vance</div>
+              <div className="font-bold text-xs">Rahul Verma</div>
             </button>
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function AuthPage() {
                     type="text"
                     name="name"
                     required
-                    placeholder="e.g. Marcus Vance"
+                    placeholder="e.g. Rahul Verma"
                     value={form.name}
                     onChange={handleChange}
                     className="input-field"
